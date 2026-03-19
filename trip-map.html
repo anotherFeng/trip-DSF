@@ -1,0 +1,812 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Germany · Switzerland · France — Family Road Trip 2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    /* ---- RESET ---- */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+    /* ---- LAYOUT ---- */
+    body { display: flex; flex-direction: column; }
+    #app { display: flex; flex-direction: column; height: 100vh; }
+    #main { display: flex; flex: 1; overflow: hidden; }
+    #map { flex: 1; height: 100%; }
+
+    /* ---- HEADER ---- */
+    #header {
+      background: #1a1a2e; color: #fff;
+      padding: 9px 14px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #header-text h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.2px; }
+    #header-text p  { font-size: 10px; opacity: 0.65; margin-top: 1px; }
+    /* ---- FILTER BAR ---- */
+    #filter-bar {
+      background: #f4f5f7; border-bottom: 1px solid #dde1e7;
+      padding: 7px 12px; flex-shrink: 0;
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+    }
+    #filter-bar label { font-size: 10px; font-weight: 600; color: #666; margin-right: 2px; }
+    .day-btn {
+      padding: 3px 10px; border-radius: 20px; border: 1.5px solid;
+      font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    /* color per country set by JS via --dc custom prop */
+    .day-btn        { background: #fff;           color: var(--dc); border-color: var(--dc); }
+    .day-btn.active { background: var(--dc); color: #fff; border-color: var(--dc); }
+    .day-btn:hover  { opacity: 0.8; }
+    .legend-dots { display: flex; gap: 10px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+    .legend-dot { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #555; }
+    .legend-dot span {
+      width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+    }
+    .legend-dot.opt-dot span { background: white; border: 2px solid #888; }
+
+    /* ---- SIDEBAR ---- */
+    #sidebar {
+      width: 290px; min-width: 290px; background: #fff;
+      border-right: 1px solid #dde1e7; overflow-y: auto; flex-shrink: 0;
+    }
+    .day-section { border-bottom: 1px solid #eee; }
+    .day-header {
+      padding: 9px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      position: sticky; top: 0; background: #fff; z-index: 1;
+    }
+    .day-header:hover { background: #f8f9fb; }
+    .day-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .day-header-text { flex: 1; min-width: 0; }
+    .day-lbl  { font-size: 11.5px; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .day-date { font-size: 10px; color: #999; }
+    .chev { font-size: 9px; color: #bbb; transition: transform 0.2s; flex-shrink: 0; }
+    .day-section.collapsed .chev { transform: rotate(-90deg); }
+    .stop-list { padding-bottom: 4px; }
+    .day-section.collapsed .stop-list { display: none; }
+
+    .stop-item {
+      padding: 6px 12px 6px 30px; cursor: pointer;
+      border-left: 3px solid transparent; position: relative;
+      transition: background 0.12s;
+    }
+    .stop-item:hover { background: #f5f6fa; }
+    .stop-item.active { background: #eef2ff; border-left-color: #4f6ef7; }
+    .stop-type-ico {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; width: 13px; text-align: center;
+    }
+    .stop-name { font-size: 11.5px; font-weight: 600; color: #222; line-height: 1.3; }
+    .opt-tag {
+      display: inline-block; font-size: 9px; background: #fdf0c4;
+      color: #7a5c00; border-radius: 3px; padding: 0 4px; margin-left: 4px; vertical-align: middle;
+    }
+    .stop-sub { font-size: 10px; color: #999; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ---- POPUP ---- */
+    .pu { min-width: 220px; max-width: 270px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .pu-name { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; line-height: 1.3; }
+    .pu-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .pu-badge { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+    .pb-type { background: #e8f2ff; color: #1a5fa8; }
+    .pb-opt  { background: #fff3cd; color: #856404; }
+    .pu-row  { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 3px; }
+    .pu-ico  { color: #777; font-size: 10px; width: 13px; flex-shrink: 0; margin-top: 2px; }
+    .pu-txt  { font-size: 10.5px; color: #444; line-height: 1.45; }
+    .pu-stars { color: #f39c12; font-size: 11px; }
+    .pu-notes { font-size: 10.5px; color: #555; line-height: 1.5; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee; }
+
+    /* ---- MOBILE FAB ---- */
+    #fab {
+      display: none; position: fixed; bottom: 18px; left: 18px; z-index: 800;
+      background: #1a1a2e; color: #fff;
+      width: 46px; height: 46px; border-radius: 50%; border: none;
+      font-size: 17px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      align-items: center; justify-content: center;
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 760px) {
+      #sidebar {
+        position: fixed; left: -295px; top: 0; height: 100%; z-index: 600;
+        transition: left 0.25s ease; box-shadow: 2px 0 12px rgba(0,0,0,0.18);
+      }
+      #sidebar.open { left: 0; }
+      #fab { display: flex; }
+      .legend-dots { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div id="header-text">
+      <h1>��️ Germany · Switzerland · France — Family Road Trip</h1>
+      <p>May 11–26, 2026 &nbsp;·&nbsp; 2 adults + 1 toddler (3yo)</p>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div id="filter-bar">
+    <label>Days:</label>
+    <!-- injected by JS -->
+    <div class="legend-dots">
+      <div class="legend-dot"><span style="background:#2d2d2d"></span>Germany</div>
+      <div class="legend-dot"><span style="background:#CC0000"></span>Switzerland</div>
+      <div class="legend-dot"><span style="background:#003189"></span>France</div>
+      <div class="legend-dot"><span style="background:#8B0000"></span>Mixed</div>
+      <div class="legend-dot opt-dot"><span></span>Optional</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="sidebar"></div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- Mobile FAB -->
+<button id="fab" title="Toggle itinerary"><i class="fas fa-list"></i></button>
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// =============================================================
+// TRIP DATA — DAYS 1-3
+// =============================================================
+const tripDays = [
+  {
+    date: "2026-05-12", day_number: 1, label: "Arrive Frankfurt",
+    country: "Germany", color: "#2d2d2d",
+    stops: [
+      { name: "Kimpton Main Frankfurt", type: "hotel", optional: false,
+        lat: 50.1109, lng: 8.6821,
+        parking: "Hotel parking — Junghofstraße 7, 60315 Frankfurt",
+        stroller: 4, notes: "Base for May 12–14. Early check-in via Chase card." },
+      { name: "Römerberg + Frankfurt Old Town", type: "activity", optional: false,
+        lat: 50.1106, lng: 8.6822,
+        parking: "Hotel parking — short walk",
+        stroller: 4, notes: "Cobblestone but flat and manageable. Free." },
+      { name: "Main River Promenade", type: "activity", optional: false,
+        lat: 50.1072, lng: 8.6878,
+        parking: "Hotel parking",
+        stroller: 5, notes: "Fully paved and flat." },
+      { name: "Eismanufaktur Frankfurt", type: "ice_cream", optional: false,
+        lat: 50.1192, lng: 8.7012,
+        parking: "Street parking on Berger Strasse — paid",
+        stroller: 5, notes: "�� Ice cream #1. Seasonal fruit sorbet." }
+    ]
+  },
+  {
+    date: "2026-05-13", day_number: 2, label: "Speyer + Heidelberg",
+    country: "Germany", color: "#2d2d2d",
+    stops: [
+      { name: "Technik Museum Speyer", type: "activity", optional: true,
+        lat: 49.3152, lng: 8.4491,
+        parking: "Museum car park — Am Technik Museum 1, 67346 Speyer. Free with entry.",
+        stroller: 5, notes: "Optional. Full-size Boeing 747, space shuttle, cars. 3yo will not want to leave. ~€18/adult. Opens 9am." },
+      { name: "Vetter's Alt Heidelberger Brauhaus", type: "food", optional: false,
+        lat: 49.4108, lng: 8.7086,
+        parking: "Parkhaus Kornmarkt — Kornmarkt, 69117 Heidelberg. ~€2/hr.",
+        stroller: 5, notes: "Lunch. Opens 11:30am, no reservation needed." },
+      { name: "Old Bridge + Bridge Monkey", type: "activity", optional: false,
+        lat: 49.4126, lng: 8.7094,
+        parking: "Parkhaus Kornmarkt",
+        stroller: 5, notes: "Flat paved bridge. Free. 5min walk from lunch." },
+      { name: "Heidelberg Castle", type: "activity", optional: false,
+        lat: 49.4099, lng: 8.7156,
+        parking: "Parkhaus Kornmarkt. Funicular from Kornmarkt €5/adult, son free.",
+        stroller: 3, notes: "Exterior and grounds only. Cobblestone, uneven. Carrier easier inside grounds." },
+      { name: "Eis Café Venezia Heidelberg", type: "ice_cream", optional: false,
+        lat: 49.4113, lng: 8.7064,
+        parking: "Parkhaus Kornmarkt",
+        stroller: 5, notes: "�� Ice cream #2. Classic stracciatella." },
+      { name: "Philosopher's Walk Viewpoint", type: "activity", optional: true,
+        lat: 49.4163, lng: 8.7089,
+        parking: "Street parking on Philosophenweg, Neuenheim side — free, limited spots.",
+        stroller: 4, notes: "Optional end of day. Drive up eliminates steep ascent. Panoramic view over Old Town, castle, Neckar. 30–45min. Free." }
+    ]
+  },
+  {
+    date: "2026-05-14", day_number: 3, label: "Stuttgart → Hohenzollern → Rhine Falls → Zürich",
+    country: "mixed", color: "#8B0000",
+    stops: [
+      { name: "Mercedes-Benz Museum Stuttgart", type: "activity", optional: true,
+        lat: 48.7882, lng: 9.2320,
+        parking: "Museum car park — Mercedesstraße 100, 70372 Stuttgart. €3 flat rate with ticket.",
+        stroller: 5, notes: "Optional — only if departing Frankfurt by 8:30am. 2hrs. Elevators throughout, ramp access on double helix." },
+      { name: "Markthalle Stuttgart", type: "food", optional: true,
+        lat: 48.7784, lng: 9.1800,
+        parking: "Parkhaus Marktplatz — Karlsplatz 6, 70173 Stuttgart. ~€2/hr.",
+        stroller: 4, notes: "Optional lunch if doing Mercedes day. Indoor market, flat. �� Ice cream #3." },
+      { name: "Hohenzollern Castle", type: "activity", optional: false,
+        lat: 48.3222, lng: 8.9714,
+        parking: "P1 Parkhaus — Burg Hohenzollern, 72379 Bisingen. Free with ticket. Shuttle bus every ~10min.",
+        stroller: 2, notes: "ONLY interior visit of trip. 12–1pm entry slot — BOOK TODAY at burg-hohenzollern.com. Non-refundable €26/adult. Stroller not permitted in museum rooms — carrier for treasury." },
+      { name: "Zeller Horn Viewpoint", type: "activity", optional: true,
+        lat: 48.3089, lng: 8.9542,
+        parking: "Berghotel Zollersteighof — Zollersteighof 2, 72461 Albstadt. Small free lot.",
+        stroller: 4, notes: "Optional — only if skipping Rhine Falls. 25min drive from P1. Flat 20min walk to viewpoint. Best external view of Hohenzollern Castle." },
+      { name: "RIVI Skyfall Restaurant — Rhine Falls", type: "food", optional: true,
+        lat: 47.6779, lng: 8.6156,
+        parking: "Schloss Laufen south bank — 8447 Dachsen. ~CHF 5.",
+        stroller: 4, notes: "Optional dinner ~6pm. Book at rivi-skyfall.ch. Terrace directly over Rhine Falls. Viewing platforms via glass elevator CHF 5/adult, son free." },
+      { name: "Prize by Radisson Zürich Affoltern am Albis", type: "hotel", optional: false,
+        lat: 47.2766, lng: 8.4537,
+        parking: "Hotel parking on site",
+        stroller: 5, notes: "Base May 14–17. Arrive ~8:45pm." }
+    ]
+  },
+
+// =============================================================
+// TRIP DATA — DAYS 4-7
+// =============================================================
+  {
+    date: "2026-05-15", day_number: 4, label: "FLEX: Appenzell or Zürich City",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Appenzell Village", type: "activity", optional: true,
+        lat: 47.3314, lng: 9.4094,
+        parking: "Zielplatz — Zielstrasse, 9050 Appenzell. Free 3hrs, CHF 5/6.5hrs or CHF 8/24hrs.",
+        stroller: 4, notes: "Clear weather only. Coffee stop, colorful main square. 25min." },
+      { name: "Appenzeller Schaukäserei", type: "activity", optional: true,
+        lat: 47.3678, lng: 9.4167,
+        parking: "On site — Industrie 1, 9063 Stein. Free.",
+        stroller: 5, notes: "10min from Appenzell. Free. 3yo watches cheese vat. 20min." },
+      { name: "Wasserauen — Seaalpsee Hike Start", type: "activity", optional: true,
+        lat: 47.2897, lng: 9.4172,
+        parking: "Parkplatz Wasserauen — Erstböhlstrasse 15, 9057 Weissbad. CHF 3 up to 3hrs, CHF 5/24hrs.",
+        stroller: 3, notes: "Gravel/packed dirt road to Seaalpsee east shore. Steady incline. ⚠️ East shore ONLY — do NOT proceed toward Aescher. Fatalities reported." },
+      { name: "Berggasthaus Forelle — Seaalpsee", type: "food", optional: true,
+        lat: 47.2856, lng: 9.4089,
+        parking: "No parking — accessed via hike from Wasserauen",
+        stroller: 5, notes: "Lunch on east shore of Seaalpsee. 2hrs. Flat lakeside terrace." },
+      { name: "Ebenalp Cable Car", type: "activity", optional: true,
+        lat: 47.2881, lng: 9.4269,
+        parking: "Same as Wasserauen parking",
+        stroller: 4, notes: "HFC 50% off — CHF 12/adult, son free. One way up only. Wildkirchli caves: carrier recommended." },
+      { name: "Rapperswil Castle + Rose Gardens", type: "activity", optional: true,
+        lat: 47.2267, lng: 8.8183,
+        parking: "Parking Lindenhügel — Fischmarktplatz, 8640 Rapperswil. ~CHF 2/hr.",
+        stroller: 4, notes: "Return leg from Appenzell. Peak May roses. 841m wooden footbridge over Lake Zürich. Deer park for 3yo. 45min." },
+      { name: "Lindt Home of Chocolate (Zürich day)", type: "activity", optional: true,
+        lat: 47.3228, lng: 8.5425,
+        parking: "Underground car park — Schokoladenplatz 1, 8802 Kilchberg. CHF 2/hr.",
+        stroller: 5, notes: "Zürich city day only on May 15 if doing Appenzell May 16. �� Ice cream #4." },
+      { name: "Bürkliplatz — Lake Zürich Promenade", type: "activity", optional: true,
+        lat: 47.3661, lng: 8.5417,
+        parking: "No car — arrive by boat from Kilchberg or public transport",
+        stroller: 5, notes: "Flat paved lakefront. Swans, mountain views, open space for toddler." },
+      { name: "Lindenhof Hill", type: "activity", optional: true,
+        lat: 47.3732, lng: 8.5408,
+        parking: "No car in city",
+        stroller: 3, notes: "Short uphill walk, paved. Giant outdoor chess board — 3yo drags oversized pieces. Carrier easier than stroller for slope." },
+      { name: "Grossmünster Cathedral", type: "activity", optional: true,
+        lat: 47.3700, lng: 8.5444,
+        parking: "No car in city",
+        stroller: 4, notes: "Free. Giacometti stained glass. Flat entry. Skip tower — stairs." },
+      { name: "Santa Lucia Niederdorf", type: "food", optional: true,
+        lat: 47.3739, lng: 8.5428,
+        parking: "No car in city",
+        stroller: 5, notes: "Dinner ~5:30pm. Book ahead at bindella.ch. Family-friendly Italian." },
+      { name: "Paradeis Eiscreme Zürich", type: "ice_cream", optional: true,
+        lat: 47.3741, lng: 8.5431,
+        parking: "No car in city",
+        stroller: 5, notes: "�� Ice cream — brown butter or tahini if available." }
+    ]
+  },
+  {
+    date: "2026-05-16", day_number: 5, label: "Lindt 10am + Zürich or Appenzell",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Lindt Home of Chocolate", type: "activity", optional: false,
+        lat: 47.3228, lng: 8.5425,
+        parking: "Underground car park — Schokoladenplatz 1, 8802 Kilchberg. CHF 2/hr. Entrance off Seestrasse 204.",
+        stroller: 5, notes: "ALWAYS May 16. Booked 10am — non-refundable. Drive from hotel ~20min. �� Ice cream #4 if not done May 15." }
+    ]
+  },
+  {
+    date: "2026-05-17", day_number: 6, label: "Zürich → Lucerne → Pilatus → Brienz → Merligen",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Chapel Bridge (Kapellbrücke) Lucerne", type: "activity", optional: false,
+        lat: 47.0516, lng: 8.3063,
+        parking: "City Parking Zürichstrasse — Zürichstrasse 35, 6004 Luzern. CHF 7/3hrs. 5min walk to bridge.",
+        stroller: 4, notes: "Arrive before tour groups. Covered wooden bridge, Reuss riverfront. Flat and paved." },
+      { name: "Lion Monument (Löwendenkmal)", type: "activity", optional: false,
+        lat: 47.0574, lng: 8.3103,
+        parking: "Same — City Parking Zürichstrasse",
+        stroller: 4, notes: "10min walk from Chapel Bridge. Paved path. Deeply moving carved dying lion. Free." },
+      { name: "Restaurant Schiff Lucerne", type: "food", optional: false,
+        lat: 47.0511, lng: 8.3072,
+        parking: "Same — City Parking Zürichstrasse",
+        stroller: 5, notes: "Waterfront lunch. Swiss classics. Opens 10am. Budget-friendly." },
+      { name: "Mount Pilatus — Kriens Cable Car", type: "activity", optional: false,
+        lat: 46.9787, lng: 8.2526,
+        parking: "Pilatus Bahnen — Schlossweg 1, 6010 Kriens. ~CHF 5/hr.",
+        stroller: 3, notes: "HFC 50% off. Cogwheel NOT running May — cable car only. Toboggan run CHF 6–8 extra. Summit views 2,132m. 3hrs." },
+      { name: "Hotel Brienzerburli / Seegarten Marina", type: "food", optional: false,
+        lat: 46.7559, lng: 8.0408,
+        parking: "Free with dinner reservation at hotel/restaurant.",
+        stroller: 5, notes: "Dinner — book terrace table, Sunday busy. First view of turquoise Lake Brienz. Book 2 weeks out." },
+      { name: "Airbnb Merligen", type: "hotel", optional: false,
+        lat: 46.7081, lng: 7.8631,
+        parking: "On site — Wychelgasse 5, 3658 Merligen",
+        stroller: 5, notes: "Base May 17–21. Check in after 4pm. 35min to Bern, 20min to Interlaken, 40min to Grindelwald, 40min to Kandersteg." },
+      { name: "Ice Cream Stand — Chapel Bridge Lucerne", type: "ice_cream", optional: false,
+        lat: 47.0512, lng: 8.3071,
+        parking: "Same — City Parking Zürichstrasse",
+        stroller: 5, notes: "�� Ice cream #5. Vanilla cone, east end of Chapel Bridge." }
+    ]
+  },
+  {
+    date: "2026-05-18", day_number: 7, label: "FLEX: Jungfraujoch or Lauterbrunnen or Bern",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Grindelwald Terminal — Jungfraujoch", type: "activity", optional: true,
+        lat: 46.6246, lng: 8.0411,
+        parking: "Pre-book QR code night before — Grundstrasse, 3818 Grindelwald. CHF 30/day.",
+        stroller: 4, notes: "Best weather day only. CHF 130.60/adult HFC, son free. Seat reservation mandatory. Book 24–48hrs ahead only." },
+      { name: "Eigergletscher Station", type: "activity", optional: true,
+        lat: 46.5784, lng: 7.9926,
+        parking: "No car — accessed via Eiger Express gondola from Grindelwald Terminal",
+        stroller: 3, notes: "Get out here 20min — Eiger Trail viewpoint, glacier up close. Then board Jungfrau Railway to summit." },
+      { name: "Jungfraujoch — Top of Europe", type: "activity", optional: true,
+        lat: 46.5474, lng: 7.9853,
+        parking: "No car — train only",
+        stroller: 3, notes: "3,454m. Sphinx platform, Ice Palace, snow plateau. ⚠️ Full warm layers for son mandatory. �� Ice cream #6 — world's highest. Son in bright snowsuit on snow plateau = hero photo of trip." },
+      { name: "Glacier Canyon Grindelwald", type: "activity", optional: true,
+        lat: 46.6201, lng: 8.0489,
+        parking: "Gletscherschluchtweg, 3818 Grindelwald. Small fee.",
+        stroller: 3, notes: "Towering rock walls, suspended spider web net. Great for kids. Carrier recommended on narrow sections." },
+      { name: "Café 3692 Grindelwald", type: "food", optional: true,
+        lat: 46.6241, lng: 8.0411,
+        parking: "Near Grindelwald Terminal",
+        stroller: 5, notes: "Eiger terrace views. Outstanding coffee. Alpine cream vanilla ice cream." },
+      { name: "Parkhaus Lauterbrunnen", type: "parking", optional: true,
+        lat: 46.5933, lng: 7.9089,
+        parking: "Zuben 479, 3822 Lauterbrunnen. CHF 17/day. Tunnel connects to Wengen train platform.",
+        stroller: 5, notes: "Base for Lauterbrunnen day. All activities accessible from here." },
+      { name: "Staubbach Falls", type: "activity", optional: true,
+        lat: 46.5934, lng: 7.9094,
+        parking: "Parkhaus Lauterbrunnen",
+        stroller: 4, notes: "Walk behind falls through tunnel. Rain jackets essential — you will get wet. Best in May snowmelt. ⚠️ Trümmelbach Falls: children under 4 NOT permitted — skip entirely." },
+      { name: "Wengen — Cogwheel Train", type: "activity", optional: true,
+        lat: 46.6081, lng: 7.9224,
+        parking: "No car — cogwheel train from Lauterbrunnen station. HFC 50% off, son free.",
+        stroller: 4, notes: "Jaw-dropping Jungfrau massif views. Car-free village. Stay until sunfall ~8pm — golden hour hits canyon walls at 7:30pm. This is the moment of the day." },
+      { name: "Oberhofen Castle", type: "activity", optional: false,
+        lat: 46.7538, lng: 7.6301,
+        parking: "Schlossstrasse, 3653 Oberhofen am Thunersee. Free lakeside parking. 2min walk to grounds.",
+        stroller: 4, notes: "8:10am. 10min from Merligen. 30min. Morning light on castle reflected in Lake Thun. Exterior only." },
+      { name: "Thun Castle", type: "activity", optional: true,
+        lat: 46.7581, lng: 7.6278,
+        parking: "Parking Bälliz — Bälliz 61, 3600 Thun. ~CHF 2/hr. 10min uphill walk to castle.",
+        stroller: 2, notes: "Optional. 8:45am. Hilltop, four distinctive towers. Uphill cobblestone — carrier recommended. Exterior only." },
+      { name: "Spiez Castle", type: "activity", optional: true,
+        lat: 46.6881, lng: 7.6761,
+        parking: "Schlossstrasse 16, 3700 Spiez. Free, directly at castle entrance.",
+        stroller: 3, notes: "Optional. 10:00am. 933 AD. Promontory over Lake Thun, Alps behind. Best lake castle setting. Exterior only." },
+      { name: "Bern Old Town", type: "activity", optional: false,
+        lat: 46.9481, lng: 7.4474,
+        parking: "Parking Bahnhof Bern — Bahnhofplatz, 3011 Bern. ~CHF 3/hr.",
+        stroller: 4, notes: "Zytglogge clock, Kramgasse 6km arcades, Bundeshaus terrace. Flat cobblestone, very manageable." },
+      { name: "Bärenpark Bern", type: "activity", optional: false,
+        lat: 46.9479, lng: 7.4603,
+        parking: "Same — Parking Bahnhof Bern",
+        stroller: 5, notes: "Real bears on Aare river bend. Son transfixed. Fully flat, paved paths. Free." },
+      { name: "Gruyères Village + Château de Gruyères", type: "activity", optional: false,
+        lat: 46.5842, lng: 7.0822,
+        parking: "Lower car park at village entrance, Gruyères 1663. Free. Short uphill walk.",
+        stroller: 3, notes: "Cobblestone uphill approach — carrier easier. May flowers, castle exterior + ramparts walk. Meringue with double cream. ⚠️ Always paired with Chillon — never one without the other." },
+      { name: "Chillon Castle", type: "activity", optional: false,
+        lat: 46.4142, lng: 6.9278,
+        parking: "Avenue de Chillon, 1820 Veytaux. CHF 3/hr.",
+        stroller: 4, notes: "Flat lakeside exterior walk. Lake Geneva setting, Alps behind. Most photogenic castle exterior of trip. ⚠️ Always paired with Gruyères. Exterior only." },
+      { name: "Harder Kulm Funicular", type: "activity", optional: true,
+        lat: 46.7181, lng: 7.8731,
+        parking: "Funicular valley station — Harderbahn, 3800 Interlaken. Small lot.",
+        stroller: 3, notes: "Lowest priority optional. Only if back by 4pm and energy allows. CHF 38/2 adults HFC. Classic Interlaken panorama." },
+      { name: "Lake Brienz Cruise — Interlaken Ost", type: "activity", optional: true,
+        lat: 46.6868, lng: 7.8681,
+        parking: "Interlaken Ost station — Bahnhofstrasse, 3800 Interlaken. Large lot, reasonable.",
+        stroller: 5, notes: "Optional — early morning Lauterbrunnen day or late afternoon Jungfraujoch day. NOT from Merligen pier. HFC 50% off, son free." }
+    ]
+  },
+
+// =============================================================
+// TRIP DATA — DAYS 10-14
+// =============================================================
+  {
+    date: "2026-05-21", day_number: 10, label: "Merligen → Oeschinensee → Zermatt",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Oeschinensee Gondola — Kandersteg", type: "activity", optional: true,
+        lat: 46.4958, lng: 7.7281,
+        parking: "Gondola station — Oeschinenseestrasse, 3718 Kandersteg. EasyPark or pre-book at oeschinensee.ch.",
+        stroller: 4, notes: "Only if May 22 forecast sunny. Booked ✅. Mountain coaster, turquoise lake, 25min stroller-accessible path to lake. Lakeside flat. 3hrs." },
+      { name: "Lötschberg Car Train — Kandersteg", type: "transport", optional: false,
+        lat: 46.4981, lng: 7.6744,
+        parking: "Drive car onto train — Kandersteg station.",
+        stroller: 5, notes: "CHF 27. Drive car onto flatbed, through Alps in 15min. Son will talk about this for months. No reservation — queue up, every 30min. Exit at Goppenstein." },
+      { name: "Täsch Terminal Garage", type: "parking", optional: false,
+        lat: 46.0631, lng: 7.7822,
+        parking: "Mattertal Strasse, 3929 Täsch. CHF 15.50/day. Book at matterhornterminal.ch.",
+        stroller: 5, notes: "Park here for entire Zermatt stay. Shuttle train 12min to Zermatt every 20min. ~CHF 10 return/adult, son free." },
+      { name: "Hotel Butterfly Zermatt", type: "hotel", optional: false,
+        lat: 46.0207, lng: 7.7491,
+        parking: "No car — Zermatt is car-free. Car parked at Täsch.",
+        stroller: 5, notes: "Base May 21–23. Check in ~5pm." },
+      { name: "Zermatlantis Museum", type: "activity", optional: true,
+        lat: 46.0201, lng: 7.7487,
+        parking: "No car — Zermatt village",
+        stroller: 4, notes: "Optional May 21 evening or May 22. CHF 10/adult. 45min. 1865 first Matterhorn ascent — dad's highlight. Small steps at entrance." },
+      { name: "Grüm Coffee Shop Zermatt", type: "ice_cream", optional: false,
+        lat: 46.0198, lng: 7.7489,
+        parking: "No car — Zermatt village",
+        stroller: 5, notes: "�� Ice cream #7. House-made. Sit outside — Matterhorn directly in front." }
+    ]
+  },
+  {
+    date: "2026-05-22", day_number: 11, label: "Zermatt — Matterhorn Day",
+    country: "Switzerland", color: "#CC0000",
+    stops: [
+      { name: "Gornergrat Railway — Valley Station", type: "activity", optional: false,
+        lat: 46.0242, lng: 7.7503,
+        parking: "No car — 5min walk from Hotel Butterfly. Car remains at Täsch.",
+        stroller: 4, notes: "First train 7:00am. Last train down 7:18pm. Sit right side going up — Matterhorn fills the window." },
+      { name: "Gornergrat Summit", type: "activity", optional: false,
+        lat: 45.9836, lng: 7.7856,
+        parking: "No car — train only",
+        stroller: 3, notes: "3,089m. ZOOOM exhibition, Gorner Glacier panorama. Some steps — carrier recommended. Watch for altitude fatigue in 3yo." },
+      { name: "Rotenboden — Riffelsee Lake", type: "activity", optional: false,
+        lat: 45.9921, lng: 7.7728,
+        parking: "No car — descend one stop on Gornergrat train",
+        stroller: 4, notes: "⚠️ GET OFF HERE on descent. 15min flat walk on gravel to lake. MUST arrive before 10am — wind breaks the reflection. Mom's best photograph of the entire trip." },
+      { name: "Riffelberg Hotel Terrace", type: "food", optional: false,
+        lat: 46.0012, lng: 7.7631,
+        parking: "No car — mid-station stop",
+        stroller: 5, notes: "Breakfast on way down. Flat terrace. Matterhorn view." },
+      { name: "Zmutt Hamlet Walk", type: "activity", optional: false,
+        lat: 46.0131, lng: 7.7281,
+        parking: "No car — 30min flat walk from Zermatt village",
+        stroller: 4, notes: "Mostly flat gravel path. Stone chalets, May wildflowers, Matterhorn above. Chez Vrony replacement — Sunnegga closed until June 13." },
+      { name: "Whymper-Stube Restaurant", type: "food", optional: false,
+        lat: 46.0203, lng: 7.7492,
+        parking: "No car — Zermatt village",
+        stroller: 4, notes: "Lunch. Named after first Matterhorn ascent climber. Fondue. Book ahead +41 27 967 22 96." }
+    ]
+  },
+  {
+    date: "2026-05-23", day_number: 12, label: "Zermatt → Basel/Chillon/Gruyères → Strasbourg",
+    country: "mixed", color: "#8B0000",
+    stops: [
+      { name: "Gornergrat — Early Morning if not done", type: "activity", optional: true,
+        lat: 45.9836, lng: 7.7860,
+        parking: "No car — walk from hotel",
+        stroller: 3, notes: "Only if Gornergrat not done May 22. First train 7:00am → Riffelsee 8am → back village 10:30am → collect bags → Strasbourg direct." },
+      { name: "Chillon Castle (Day 12)", type: "activity", optional: true,
+        lat: 46.4142, lng: 6.9275,
+        parking: "Avenue de Chillon, 1820 Veytaux. CHF 3/hr.",
+        stroller: 4, notes: "Only if Gruyères+Chillon not done on Bern day AND Gornergrat already done. Exterior only. ⚠️ Always paired with Gruyères." },
+      { name: "Gruyères Village (Day 12)", type: "activity", optional: true,
+        lat: 46.5842, lng: 7.0826,
+        parking: "Lower car park, Gruyères 1663. Free.",
+        stroller: 3, notes: "Only paired with Chillon. Cobblestone uphill. Exterior only. ⚠️ Always paired with Chillon." },
+      { name: "Basel Marktplatz", type: "activity", optional: true,
+        lat: 47.5596, lng: 7.5886,
+        parking: "Parkhaus Steinen — Steinentorberg, 4051 Basel. ~CHF 2–3/hr.",
+        stroller: 4, notes: "Optional — ONLY if both Gornergrat and Gruyères+Chillon already done. Red Rathaus, quick lunch, 90min max." },
+      { name: "Sofitel Strasbourg Grande Île", type: "hotel", optional: false,
+        lat: 48.5831, lng: 7.7459,
+        parking: "Parking Petite France or Parking Austerlitz — cheaper than hotel. ~€1.50–2/hr.",
+        stroller: 5, notes: "Base May 23–25. Check in ~3:15–6:30pm depending on route taken." },
+      { name: "Petite France — Rue du Bain-aux-Plantes", type: "activity", optional: false,
+        lat: 48.5798, lng: 7.7389,
+        parking: "Parking Petite France",
+        stroller: 4, notes: "Best Renaissance half-timbered buildings. Canal streets, flat cobblestone." },
+      { name: "Barrage Vauban Rooftop", type: "activity", optional: false,
+        lat: 48.5791, lng: 7.7381,
+        parking: "Parking Petite France",
+        stroller: 3, notes: "Free. Elevator to rooftop available. ⭐⭐⭐ Golden hour 8:15–8:30pm — hero evening photograph of France leg. Ponts Couverts below." }
+    ]
+  },
+  {
+    date: "2026-05-24", day_number: 13, label: "Strasbourg + Eguisheim + Colmar",
+    country: "France", color: "#003189",
+    stops: [
+      { name: "Strasbourg Cathedral", type: "activity", optional: false,
+        lat: 48.5818, lng: 7.7507,
+        parking: "Parking Gutenberg — Place du Château, 67000 Strasbourg. ~€2/hr. 2min walk.",
+        stroller: 4, notes: "9:00am. Free entry. Finest Gothic architecture in France. Flat wide aisles." },
+      { name: "Place Gutenberg + Maison Kammerzell", type: "activity", optional: false,
+        lat: 48.5815, lng: 7.7498,
+        parking: "Parking Gutenberg",
+        stroller: 5, notes: "9:30am. Finest Renaissance building in Alsace. Flat plaza. 15min." },
+      { name: "Eguisheim Village", type: "activity", optional: false,
+        lat: 48.0431, lng: 7.3069,
+        parking: "Lower village car park — follow signs. Eguisheim 68420. Small fee or free.",
+        stroller: 3, notes: "⚠️ Arrive 10:00am SHARP — tour buses arrive 11am. Circular cobblestone street, May flower boxes. Most photogenic village of France leg. Carrier easier in tight lanes." },
+      { name: "Colmar Old Town + Little Venice", type: "activity", optional: false,
+        lat: 48.0793, lng: 7.3585,
+        parking: "Parking Unterlinden — Place Unterlinden, 68000 Colmar. ~€1.50–2/hr.",
+        stroller: 4, notes: "Mostly flat, some cobblestone. Little Venice canal area fully flat." },
+      { name: "Little Venice Boat Trip", type: "activity", optional: false,
+        lat: 48.0779, lng: 7.3572,
+        parking: "Parking Unterlinden",
+        stroller: 5, notes: "2:00pm. Flat boarding, low boats. ~€6–8/adult. Perfect for toddler." },
+      { name: "Toy Museum Colmar", type: "activity", optional: false,
+        lat: 48.0784, lng: 7.3561,
+        parking: "Parking Unterlinden",
+        stroller: 4, notes: "2:45pm. Compact, excellent for 3yo. 45min. ~€5/adult. Small step at entrance." },
+      { name: "Bartholdi Walking Route", type: "activity", optional: false,
+        lat: 48.0798, lng: 7.3578,
+        parking: "Parking Unterlinden",
+        stroller: 4, notes: "3:45pm. Statue of Liberty heads in pavement. House of Heads, Pfister House, St Martin's Church. Flat pedestrian streets. Free." },
+      { name: "Glaces de la Cathédrale Strasbourg", type: "ice_cream", optional: false,
+        lat: 48.5819, lng: 7.7509,
+        parking: "Parking Gutenberg",
+        stroller: 5, notes: "�� Ice cream #9. Morning stop after cathedral. Mirabelle plum or Alsatian kirsch." },
+      { name: "La Cigogne Gourmande Colmar", type: "ice_cream", optional: false,
+        lat: 48.0781, lng: 7.3574,
+        parking: "Parking Unterlinden",
+        stroller: 5, notes: "�� Ice cream #10. Mirabelle or rhubarb — peak May season." }
+    ]
+  },
+  {
+    date: "2026-05-25", day_number: 14, label: "Strasbourg → Baden-Baden → Frankfurt Airport",
+    country: "mixed", color: "#8B0000",
+    stops: [
+      { name: "Strasbourg Cathedral — Clock Show", type: "activity", optional: true,
+        lat: 48.5818, lng: 7.7510,
+        parking: "Parking Gutenberg — Place du Château, 67000 Strasbourg.",
+        stroller: 4, notes: "Optional. Position inside by 12:00pm. Show at 12:30pm sharp. €3/adult at cathedral desk. Figures parade, cock crows, full mechanism. Depart 1:15pm if doing show." },
+      { name: "Trinkhalle Baden-Baden", type: "activity", optional: false,
+        lat: 48.7606, lng: 8.2398,
+        parking: "Parkhaus Friedrichsbad — Römerplatz 1, 76530 Baden-Baden. ~€1.50/hr. 5min walk.",
+        stroller: 5, notes: "1842 arcade, frescoed columns. 15min. Free. Mom will photograph this." },
+      { name: "Lichtentaler Allee", type: "activity", optional: false,
+        lat: 48.7589, lng: 8.2364,
+        parking: "Parkhaus Friedrichsbad",
+        stroller: 5, notes: "2.3km fully flat paved path. Peak May bloom — rhododendrons, azaleas, rose garden. Adventure playground for 3yo. 1.5hrs. Free. Anchor of Baden-Baden." },
+      { name: "Löwenbräu Baden-Baden", type: "food", optional: false,
+        lat: 48.7614, lng: 8.2401,
+        parking: "Parkhaus Friedrichsbad",
+        stroller: 5, notes: "Lunch. Local favourite, great patio." },
+      { name: "Merkur Funicular", type: "activity", optional: true,
+        lat: 48.7731, lng: 8.2619,
+        parking: "Merkurstrasse, 76530 Baden-Baden. Small free lot at valley station.",
+        stroller: 3, notes: "Optional. ~€8.50 return. Steepest funicular in Germany. Black Forest and Rhine Valley panorama. Free playground at summit. ⚠️ Check visibility at base before buying." },
+      { name: "Café König Baden-Baden", type: "ice_cream", optional: false,
+        lat: 48.7601, lng: 8.2389,
+        parking: "Parkhaus Friedrichsbad",
+        stroller: 5, notes: "�� Ice cream #11 — final ice cream of the trip." },
+      { name: "Sheraton Frankfurt Airport", type: "hotel", optional: false,
+        lat: 50.0514, lng: 8.5706,
+        parking: "Return Hertz car at Frankfurt Airport Terminal 1 central facility. 30–45min budget.",
+        stroller: 5, notes: "Pre-flight hotel. Check in ~6:15pm. Early dinner, early night. Confirm Terminal 1 walking connection." }
+    ]
+  }
+];
+
+// =============================================================
+// HELPERS
+// =============================================================
+const TYPE_ICONS = {
+  hotel:      'fa-bed',
+  activity:   'fa-mountain',
+  food:       'fa-utensils',
+  ice_cream:  'fa-ice-cream',
+  parking:    'fa-square-parking',
+  transport:  'fa-train',
+};
+const TYPE_LABELS = {
+  hotel: 'Hotel', activity: 'Activity', food: 'Food',
+  ice_cream: 'Ice Cream', parking: 'Parking', transport: 'Transport'
+};
+
+function stars(n) {
+  return '<span class="pu-stars">' + '★'.repeat(n) + '</span><span style="color:#ccc">' + '★'.repeat(5-n) + '</span>';
+}
+
+function countryClass(c) {
+  return c === 'Germany' ? 'de' : c === 'Switzerland' ? 'ch' : c === 'France' ? 'fr' : 'mx';
+}
+
+// =============================================================
+// MAP
+// =============================================================
+const map = L.map('map', { center: [47.2, 8.4], zoom: 7, zoomControl: true });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19
+}).addTo(map);
+
+// =============================================================
+// MARKER FACTORY
+// =============================================================
+function makeIcon(color, optional) {
+  const s = 14;
+  const inner = optional
+    ? `background:rgba(255,255,255,0.92);border:2.5px solid ${color};`
+    : `background:${color};border:2px solid rgba(255,255,255,0.9);`;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${s}px;height:${s}px;border-radius:50%;${inner}box-shadow:0 1px 5px rgba(0,0,0,0.38);"></div>`,
+    iconSize: [s, s],
+    iconAnchor: [s/2, s/2],
+    popupAnchor: [0, -(s/2 + 3)]
+  });
+}
+
+function buildPopup(stop, day) {
+  const ico = TYPE_ICONS[stop.type] || 'fa-location-dot';
+  const lbl = TYPE_LABELS[stop.type] || stop.type;
+  const optBadge = stop.optional ? `<span class="pu-badge pb-opt"><i class="fas fa-circle-check"></i> Optional</span>` : '';
+  return `<div class="pu">
+    <div class="pu-name">${stop.name}</div>
+    <div class="pu-badges">
+      <span class="pu-badge pb-type"><i class="fas ${ico}"></i> ${lbl}</span>${optBadge}
+    </div>
+    <div class="pu-row"><span class="pu-ico"><i class="fas fa-calendar-days"></i></span>
+      <span class="pu-txt">Day ${day.day_number} &nbsp;·&nbsp; ${day.date}</span></div>
+    <div class="pu-row"><span class="pu-ico"><i class="fas fa-car"></i></span>
+      <span class="pu-txt">${stop.parking}</span></div>
+    <div class="pu-row"><span class="pu-ico"><i class="fas fa-baby-carriage"></i></span>
+      <span class="pu-txt">${stars(stop.stroller)} <span style="color:#aaa;font-size:9.5px">${stop.stroller}/5</span></span></div>
+    <div class="pu-notes">${stop.notes}</div>
+  </div>`;
+}
+
+// =============================================================
+// BUILD UI
+// =============================================================
+const allMarkers  = {};   // key → marker
+const dayGroups   = {};   // dayNum → [key, ...]
+let   activeItems = {};   // track sidebar active items
+
+function build() {
+  const sidebar   = document.getElementById('sidebar');
+  const filterBar = document.getElementById('filter-bar');
+
+  // --- Day filter buttons ---
+  const allBtn = document.createElement('button');
+  allBtn.className = 'day-btn active';
+  allBtn.dataset.day = 'all';
+  allBtn.textContent = 'All';
+  allBtn.style.setProperty('--dc', '#444');
+  filterBar.insertBefore(allBtn, filterBar.querySelector('.legend-dots'));
+
+  tripDays.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn active';
+    btn.dataset.day = day.day_number;
+    btn.textContent = `D${day.day_number}`;
+    btn.title = `Day ${day.day_number}: ${day.label}`;
+    btn.style.setProperty('--dc', day.color);
+    filterBar.insertBefore(btn, filterBar.querySelector('.legend-dots'));
+  });
+
+  // --- Sidebar + markers ---
+  tripDays.forEach(day => {
+    dayGroups[day.day_number] = [];
+
+    const sec = document.createElement('div');
+    sec.className = 'day-section';
+    sec.dataset.day = day.day_number;
+
+    sec.innerHTML = `
+      <div class="day-header">
+        <div class="day-dot" style="background:${day.color}"></div>
+        <div class="day-header-text">
+          <div class="day-lbl">Day ${day.day_number}: ${day.label}</div>
+          <div class="day-date">${day.date}</div>
+        </div>
+        <i class="fas fa-chevron-down chev"></i>
+      </div>
+      <div class="stop-list"></div>`;
+    sidebar.appendChild(sec);
+
+    sec.querySelector('.day-header').addEventListener('click', () => sec.classList.toggle('collapsed'));
+
+    const stopList = sec.querySelector('.stop-list');
+
+    day.stops.forEach((stop, idx) => {
+      const key = `${day.day_number}-${idx}`;
+
+      // Marker
+      const m = L.marker([stop.lat, stop.lng], { icon: makeIcon(day.color, stop.optional) });
+      m.bindPopup(buildPopup(stop, day), { maxWidth: 300 });
+      m.addTo(map);
+      allMarkers[key] = m;
+      dayGroups[day.day_number].push(key);
+
+      // Sidebar item
+      const item = document.createElement('div');
+      item.className = 'stop-item';
+      const ico = TYPE_ICONS[stop.type] || 'fa-location-dot';
+      const optTag = stop.optional ? `<span class="opt-tag">opt</span>` : '';
+      const parking_short = stop.parking.length > 48 ? stop.parking.slice(0, 48) + '…' : stop.parking;
+      item.innerHTML = `
+        <span class="stop-type-ico"><i class="fas ${ico}" style="color:${day.color}"></i></span>
+        <div class="stop-name">${stop.name}${optTag}</div>
+        <div class="stop-sub">${parking_short}</div>`;
+
+      item.addEventListener('click', () => {
+        // Clear previous active
+        document.querySelectorAll('.stop-item.active').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        map.flyTo([stop.lat, stop.lng], 15, { duration: 0.9 });
+        setTimeout(() => m.openPopup(), 950);
+        // Close mobile sidebar
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('fab').textContent = '鈽?;
+      });
+
+      stopList.appendChild(item);
+    });
+  });
+
+  // =============================================================
+  // DAY FILTER LOGIC
+  // =============================================================
+  document.querySelectorAll('.day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const day = btn.dataset.day;
+
+      if (day === 'all') {
+        // Activate everything
+        document.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
+        Object.values(allMarkers).forEach(m => { if (!map.hasLayer(m)) map.addLayer(m); });
+        document.querySelectorAll('.day-section').forEach(s => s.style.display = '');
+        return;
+      }
+
+      btn.classList.toggle('active');
+      const num  = +day;
+      const show = btn.classList.contains('active');
+      (dayGroups[num] || []).forEach(key => {
+        const m = allMarkers[key];
+        show ? (!map.hasLayer(m) && map.addLayer(m)) : (map.hasLayer(m) && map.removeLayer(m));
+      });
+      const sec = document.querySelector(`.day-section[data-day="${num}"]`);
+      if (sec) sec.style.display = show ? '' : 'none';
+
+      // Sync "All" button
+      const allActive = [...document.querySelectorAll('.day-btn:not([data-day="all"])')].every(b => b.classList.contains('active'));
+      document.querySelector('[data-day="all"]').classList.toggle('active', allActive);
+    });
+  });
+
+  // =============================================================
+  // MOBILE FAB
+  // =============================================================
+  const fab     = document.getElementById('fab');
+  const sideEl  = document.getElementById('sidebar');
+  fab.addEventListener('click', () => {
+    const open = sideEl.classList.toggle('open');
+    fab.textContent = open ? '鉁? : '鈽?;
+  });
+  map.on('click', () => {
+    sideEl.classList.remove('open');
+    fab.querySelector('i').className = 'fas fa-list';
+  });
+
+  // =============================================================
+  // FIT MAP
+  // =============================================================
+  const bounds = tripDays.flatMap(d => d.stops.map(s => [s.lat, s.lng]));
+  if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
+}
+
+build();
+</script>
+</body>
+</html>
+
