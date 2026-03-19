@@ -15,7 +15,6 @@
     body { display: flex; flex-direction: column; }
     #app { display: flex; flex-direction: column; height: 100vh; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #map { flex: 1; height: 100%; }
 
     /* ---- HEADER ---- */
     #header {
@@ -26,84 +25,133 @@
     #header-text h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.2px; }
     #header-text p  { font-size: 10px; opacity: 0.65; margin-top: 1px; }
 
-    /* ---- FILTER BAR ---- */
-    #filter-bar {
-      background: #f4f5f7; border-bottom: 1px solid #dde1e7;
-      padding: 7px 12px; flex-shrink: 0;
-      display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
-    }
-    #filter-bar label { font-size: 10px; font-weight: 600; color: #666; margin-right: 2px; }
-    .day-btn {
-      padding: 3px 10px; border-radius: 20px; border: 1.5px solid;
-      font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
-      transition: background 0.15s, color 0.15s;
-    }
-    /* color per country set by JS via --dc custom prop */
-    .day-btn        { background: #fff;           color: var(--dc); border-color: var(--dc); }
-    .day-btn.active { background: var(--dc); color: #fff; border-color: var(--dc); }
-    .day-btn:hover  { opacity: 0.8; }
-    .legend-dots { display: flex; gap: 10px; margin-left: auto; align-items: center; flex-wrap: wrap; }
-    .legend-dot { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #555; }
-    .legend-dot span {
-      width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex-shrink: 0;
-    }
-    .legend-dot.opt-dot span { background: white; border: 2px solid #888; }
-
     /* ---- SIDEBAR ---- */
     #sidebar {
-      width: 290px; min-width: 290px; background: #fff;
-      border-right: 1px solid #dde1e7; overflow-y: auto; flex-shrink: 0;
+      width: 320px; min-width: 320px; background: #fff;
+      border-right: 1px solid #dde1e7; display: flex; flex-direction: column; flex-shrink: 0;
     }
+
+    /* Toolbar strip */
+    #sb-toolbar {
+      background: #1a1a2e; padding: 8px 10px;
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
+    #map-toggle {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; border-radius: 6px; padding: 5px 10px; font-size: 12px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    #map-toggle:hover { background: rgba(255,255,255,0.22); }
+    #map-toggle.map-active { background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.6); }
+    #map-toggle span { font-size: 11px; font-weight: 600; }
+    #fab-close {
+      margin-left: auto; display: none;
+      background: transparent; border: none; color: rgba(255,255,255,0.6);
+      font-size: 16px; cursor: pointer; padding: 4px 6px;
+    }
+    #fab-close:hover { color: #fff; }
+
+    /* Day list */
+    #sb-days { overflow-y: auto; flex: 1; }
+
     .day-section { border-bottom: 1px solid #eee; }
     .day-header {
-      padding: 9px 12px; cursor: pointer;
+      padding: 10px 12px; cursor: pointer;
       display: flex; align-items: center; gap: 8px;
       position: sticky; top: 0; background: #fff; z-index: 1;
+      transition: background 0.12s;
     }
     .day-header:hover { background: #f8f9fb; }
     .day-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .day-header-text { flex: 1; min-width: 0; }
-    .day-lbl  { font-size: 11.5px; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .day-date { font-size: 10px; color: #999; }
+    .day-lbl  { font-size: 12px; font-weight: 700; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .day-date { font-size: 10px; color: #999; margin-top: 1px; }
     .chev { font-size: 9px; color: #bbb; transition: transform 0.2s; flex-shrink: 0; }
     .day-section.collapsed .chev { transform: rotate(-90deg); }
-    .stop-list { padding-bottom: 4px; }
+    .stop-list { padding: 4px 0 8px; }
     .day-section.collapsed .stop-list { display: none; }
 
-    .stop-item {
-      padding: 6px 12px 6px 30px; cursor: pointer;
-      border-left: 3px solid transparent; position: relative;
+    /* ---- STOP CARDS ---- */
+    .stop-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 12px; cursor: pointer;
+      border-left: 3px solid transparent;
       transition: background 0.12s;
     }
-    .stop-item:hover { background: #f5f6fa; }
-    .stop-item.active { background: #eef2ff; border-left-color: #4f6ef7; }
-    .stop-type-ico {
-      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      font-size: 10px; width: 13px; text-align: center;
+    .stop-card:hover { background: #f5f6fa; }
+    .stop-card.active { background: #eef2ff; border-left-color: #4f6ef7; }
+    .stop-thumb {
+      width: 60px; height: 44px; border-radius: 5px; object-fit: cover;
+      flex-shrink: 0; background: #e8eaf0;
     }
-    .stop-name { font-size: 11.5px; font-weight: 600; color: #222; line-height: 1.3; }
+    .stop-thumb-placeholder {
+      width: 60px; height: 44px; border-radius: 5px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; background: #f0f1f5;
+    }
+    .stop-card-text { flex: 1; min-width: 0; }
+    .stop-card-name { font-size: 11.5px; font-weight: 600; color: #222; line-height: 1.3; }
     .opt-tag {
       display: inline-block; font-size: 9px; background: #fdf0c4;
       color: #7a5c00; border-radius: 3px; padding: 0 4px; margin-left: 4px; vertical-align: middle;
     }
-    .stop-sub { font-size: 10px; color: #999; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stop-card-sub { font-size: 10px; color: #888; margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* ---- POPUP ---- */
-    .pu { min-width: 220px; max-width: 270px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .pu-name { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; line-height: 1.3; }
-    .pu-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-    .pu-badge { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
-    .pb-type { background: #e8f2ff; color: #1a5fa8; }
-    .pb-opt  { background: #fff3cd; color: #856404; }
-    .pu-row  { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 3px; }
-    .pu-ico  { color: #777; font-size: 10px; width: 13px; flex-shrink: 0; margin-top: 2px; }
-    .pu-txt  { font-size: 10.5px; color: #444; line-height: 1.45; }
-    .pu-stars { color: #f39c12; font-size: 11px; }
-    .pu-notes { font-size: 10.5px; color: #555; line-height: 1.5; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee; }
+    /* ---- CONTENT AREA ---- */
+    #content { flex: 1; position: relative; overflow: hidden; }
+    #map { position: absolute; inset: 0; }
+    #map.hidden { display: none; }
+    #detail-panel {
+      position: absolute; inset: 0; overflow-y: auto; background: #f7f8fb;
+    }
+    #detail-panel.hidden { display: none; }
+
+    /* Welcome state */
+    #welcome-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; padding: 40px 24px; text-align: center; color: #aaa;
+    }
+    #welcome-state i { font-size: 52px; margin-bottom: 18px; color: #ccd; }
+    #welcome-state h2 { font-size: 18px; font-weight: 700; color: #555; margin-bottom: 10px; }
+    #welcome-state p  { font-size: 13px; line-height: 1.6; max-width: 320px; }
+
+    /* ---- DETAIL PANEL CONTENT ---- */
+    .dp-hero {
+      width: 100%; height: 220px; object-fit: cover; display: block; background: #dde1e9;
+    }
+    .dp-hero-placeholder {
+      width: 100%; height: 220px; display: flex; align-items: center; justify-content: center;
+      font-size: 64px; background: linear-gradient(135deg, #e8eaf6, #c5cae9);
+    }
+    .dp-body { padding: 20px 22px 32px; }
+    .dp-name { font-size: 20px; font-weight: 800; color: #1a1a2e; line-height: 1.25; margin-bottom: 10px; }
+    .dp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .dp-badge { font-size: 10px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
+    .dp-b-type { background: #e8f2ff; color: #1a5fa8; }
+    .dp-b-opt  { background: #fff3cd; color: #856404; }
+    .dp-b-day  { background: #f0f0f0; color: #555; }
+    .dp-rows { display: flex; flex-direction: column; gap: 14px; }
+    .dp-row { display: flex; gap: 12px; align-items: flex-start; }
+    .dp-ico { width: 32px; height: 32px; border-radius: 8px; background: #eef2ff;
+      display: flex; align-items: center; justify-content: center;
+      color: #4f6ef7; font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+    .dp-row-content { flex: 1; }
+    .dp-row-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .dp-row-value { font-size: 13px; color: #333; line-height: 1.5; }
+    .dp-stars { color: #f39c12; font-size: 14px; }
+    .dp-notes {
+      margin-top: 20px; padding: 14px 16px; background: #fff;
+      border-radius: 10px; border: 1px solid #e8eaef;
+      font-size: 13px; color: #444; line-height: 1.65;
+    }
+    .dp-notes-label { font-size: 10px; font-weight: 700; color: #aaa;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 
     /* ---- MOBILE FAB ---- */
     #fab {
-      display: none; position: fixed; bottom: 18px; left: 18px; z-index: 800;
+      display: none; position: fixed; bottom: 18px; right: 18px; z-index: 800;
       background: #1a1a2e; color: #fff;
       width: 46px; height: 46px; border-radius: 50%; border: none;
       font-size: 17px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
@@ -113,12 +161,12 @@
     /* ---- RESPONSIVE ---- */
     @media (max-width: 760px) {
       #sidebar {
-        position: fixed; left: -295px; top: 0; height: 100%; z-index: 600;
-        transition: left 0.25s ease; box-shadow: 2px 0 12px rgba(0,0,0,0.18);
+        position: fixed; left: -325px; top: 0; height: 100%; z-index: 600;
+        width: 320px; transition: left 0.25s ease; box-shadow: 2px 0 12px rgba(0,0,0,0.18);
       }
       #sidebar.open { left: 0; }
       #fab { display: flex; }
-      .legend-dots { display: none; }
+      #fab-close { display: block; }
     }
   </style>
 </head>
@@ -132,23 +180,32 @@
     </div>
   </div>
 
-  <!-- FILTER BAR -->
-  <div id="filter-bar">
-    <label>Days:</label>
-    <!-- injected by JS -->
-    <div class="legend-dots">
-      <div class="legend-dot"><span style="background:#2d2d2d"></span>Germany</div>
-      <div class="legend-dot"><span style="background:#CC0000"></span>Switzerland</div>
-      <div class="legend-dot"><span style="background:#003189"></span>France</div>
-      <div class="legend-dot"><span style="background:#8B0000"></span>Mixed</div>
-      <div class="legend-dot opt-dot"><span></span>Optional</div>
-    </div>
-  </div>
-
   <!-- MAIN -->
   <div id="main">
-    <div id="sidebar"></div>
-    <div id="map"></div>
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div id="sb-toolbar">
+        <button id="map-toggle" title="Toggle map view">
+          <i class="fas fa-map"></i><span>Map</span>
+        </button>
+        <button id="fab-close" title="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="sb-days"></div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div id="content">
+      <div id="map" class="hidden"></div>
+      <div id="detail-panel">
+        <div id="welcome-state">
+          <i class="fas fa-map-location-dot"></i>
+          <h2>Germany · Switzerland · France</h2>
+          <p>Select a day in the sidebar, then tap a location to see details.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -162,6 +219,17 @@
 // TRIP DATA — DAYS 1-3
 // =============================================================
 const tripDays = [
+  // ---- TRAVEL DAY: FLY IN ----
+  {
+    date: "2026-05-11", day_number: 0, label: "Fly to Frankfurt",
+    country: "travel", color: "#555",
+    stops: [
+      { name: "Depart Home Airport", type: "transport", optional: false,
+        lat: 50.0330, lng: 8.5706,
+        parking: "Long-term parking or ride to departure airport.",
+        stroller: 5, notes: "Depart home. Long-haul flight to Frankfurt (FRA). Land morning of May 12. Rest day — easy arrival, hotel check-in." }
+    ]
+  },
   {
     date: "2026-05-12", day_number: 1, label: "Arrive Frankfurt",
     country: "Germany", color: "#2d2d2d",
@@ -593,6 +661,17 @@ const tripDays = [
         parking: "Return Hertz car at Frankfurt Airport Terminal 1 central facility. 30–45min budget.",
         stroller: 5, notes: "Pre-flight hotel. Check in ~6:15pm. Early dinner, early night. Confirm Terminal 1 walking connection." }
     ]
+  },
+  // ---- TRAVEL DAY: FLY OUT ----
+  {
+    date: "2026-05-26", day_number: 15, label: "Fly Home from Frankfurt",
+    country: "travel", color: "#555",
+    stops: [
+      { name: "Frankfurt Airport Departure (FRA)", type: "transport", optional: false,
+        lat: 50.0514, lng: 8.5706,
+        parking: "Hertz return at Terminal 1 central facility — allow 30–45min before check-in.",
+        stroller: 5, notes: "Stroller check at gate. Allow extra time for family security lane. Safe travels!" }
+    ]
   }
 ];
 
@@ -605,23 +684,45 @@ const TYPE_ICONS = {
   food:      'fa-utensils',
   ice_cream: 'fa-ice-cream',
   parking:   'fa-square-parking',
-  transport: 'fa-train'
+  transport: 'fa-plane'
+};
+const TYPE_EMOJIS = {
+  hotel: '🏨', activity: '🏔️', food: '🍽️',
+  ice_cream: '🍦', parking: '🅿️', transport: '✈️'
 };
 const TYPE_LABELS = {
   hotel: 'Hotel', activity: 'Activity', food: 'Food',
   ice_cream: 'Ice Cream', parking: 'Parking', transport: 'Transport'
 };
 
-function stars(n) {
-  return '<span class="pu-stars">' + '★'.repeat(n) + '</span><span style="color:#ccc">' + '★'.repeat(5-n) + '</span>';
-}
-
-function countryClass(c) {
-  return c === 'Germany' ? 'de' : c === 'Switzerland' ? 'ch' : c === 'France' ? 'fr' : 'mx';
+function dpStars(n) {
+  return `<span class="dp-stars">${'★'.repeat(n)}</span><span style="color:#ddd">${'★'.repeat(5 - n)}</span> <span style="font-size:11px;color:#aaa">${n}/5</span>`;
 }
 
 // =============================================================
-// MAP
+// WIKIPEDIA PHOTO CACHE
+// =============================================================
+const photoCache = {};   // stopName → url | null
+
+async function fetchWikiThumb(query, size = 400) {
+  if (query in photoCache) return photoCache[query];
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json` +
+                `&piprop=thumbnail&pithumbsize=${size}&titles=${encodeURIComponent(query)}&origin=*`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    const page = Object.values(data.query.pages)[0];
+    const src  = page?.thumbnail?.source || null;
+    photoCache[query] = src;
+    return src;
+  } catch {
+    photoCache[query] = null;
+    return null;
+  }
+}
+
+// =============================================================
+// MAP (initialised but kept hidden until toggle)
 // =============================================================
 const map = L.map('map', { center: [47.2, 8.4], zoom: 7, zoomControl: true });
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -629,9 +730,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
-// =============================================================
-// MARKER FACTORY
-// =============================================================
+const allMarkers = {};   // key → L.marker
+const dayGroups  = {};   // dayNum → [key, …]
+
 function makeIcon(color, optional) {
   const s = 14;
   const inner = optional
@@ -640,169 +741,227 @@ function makeIcon(color, optional) {
   return L.divIcon({
     className: '',
     html: `<div style="width:${s}px;height:${s}px;border-radius:50%;${inner}box-shadow:0 1px 5px rgba(0,0,0,0.38);"></div>`,
-    iconSize: [s, s],
-    iconAnchor: [s/2, s/2],
-    popupAnchor: [0, -(s/2 + 3)]
+    iconSize: [s, s], iconAnchor: [s/2, s/2], popupAnchor: [0, -(s/2+3)]
   });
 }
 
-function buildPopup(stop, day) {
-  const ico = TYPE_ICONS[stop.type] || 'fa-location-dot';
-  const lbl = TYPE_LABELS[stop.type] || stop.type;
-  const optBadge = stop.optional ? `<span class="pu-badge pb-opt"><i class="fas fa-circle-check"></i> Optional</span>` : '';
-  return `<div class="pu">
-    <div class="pu-name">${stop.name}</div>
-    <div class="pu-badges">
-      <span class="pu-badge pb-type"><i class="fas ${ico}"></i> ${lbl}</span>${optBadge}
+// =============================================================
+// MAP ↔ DETAIL TOGGLE
+// =============================================================
+let mapMode       = false;
+let lastStop      = null;
+let lastDay       = null;
+let lastMarkerKey = null;
+
+function setMapMode(on) {
+  mapMode = on;
+  const mapEl    = document.getElementById('map');
+  const detailEl = document.getElementById('detail-panel');
+  const toggleBtn = document.getElementById('map-toggle');
+
+  if (on) {
+    mapEl.classList.remove('hidden');
+    detailEl.classList.add('hidden');
+    toggleBtn.classList.add('map-active');
+    toggleBtn.querySelector('i').className = 'fas fa-list';
+    toggleBtn.querySelector('span').textContent = 'Itinerary';
+    // Invalidate map size (it may have been hidden) then fly to last selected
+    setTimeout(() => {
+      map.invalidateSize();
+      if (lastStop && lastMarkerKey) {
+        map.flyTo([lastStop.lat, lastStop.lng], 14, { duration: 0.8 });
+        setTimeout(() => allMarkers[lastMarkerKey]?.openPopup(), 850);
+      }
+    }, 50);
+  } else {
+    mapEl.classList.add('hidden');
+    detailEl.classList.remove('hidden');
+    toggleBtn.classList.remove('map-active');
+    toggleBtn.querySelector('i').className = 'fas fa-map';
+    toggleBtn.querySelector('span').textContent = 'Map';
+    if (lastStop && lastDay) showDetail(lastStop, lastDay, lastMarkerKey);
+  }
+}
+
+// =============================================================
+// DETAIL PANEL
+// =============================================================
+function showDetail(stop, day, key) {
+  lastStop      = stop;
+  lastDay       = day;
+  lastMarkerKey = key;
+
+  // If we're in map mode stay there; detail will show when toggled back
+  if (mapMode) return;
+
+  const panel = document.getElementById('detail-panel');
+  const ico   = TYPE_ICONS[stop.type]  || 'fa-location-dot';
+  const lbl   = TYPE_LABELS[stop.type] || stop.type;
+  const emoji = TYPE_EMOJIS[stop.type] || '📍';
+  const optBadge = stop.optional
+    ? `<span class="dp-badge dp-b-opt"><i class="fas fa-circle-check"></i> Optional</span>` : '';
+  const dayLabel = day.day_number === 0 ? 'Travel Day — Fly In'
+                 : day.day_number === 15 ? 'Travel Day — Fly Out'
+                 : `Day ${day.day_number} · ${day.date}`;
+
+  panel.innerHTML = `
+    <div class="dp-hero-placeholder" id="dp-hero-wrap">
+      <span style="font-size:64px">${emoji}</span>
     </div>
-    <div class="pu-row"><span class="pu-ico"><i class="fas fa-calendar-days"></i></span>
-      <span class="pu-txt">Day ${day.day_number} &nbsp;·&nbsp; ${day.date}</span></div>
-    <div class="pu-row"><span class="pu-ico"><i class="fas fa-car"></i></span>
-      <span class="pu-txt">${stop.parking}</span></div>
-    <div class="pu-row"><span class="pu-ico"><i class="fas fa-baby-carriage"></i></span>
-      <span class="pu-txt">${stars(stop.stroller)} <span style="color:#aaa;font-size:9.5px">${stop.stroller}/5</span></span></div>
-    <div class="pu-notes">${stop.notes}</div>
-  </div>`;
+    <div class="dp-body">
+      <div class="dp-name">${stop.name}</div>
+      <div class="dp-badges">
+        <span class="dp-badge dp-b-type"><i class="fas ${ico}"></i> ${lbl}</span>
+        ${optBadge}
+        <span class="dp-badge dp-b-day" style="border-left:3px solid ${day.color}">${dayLabel}</span>
+      </div>
+      <div class="dp-rows">
+        <div class="dp-row">
+          <div class="dp-ico"><i class="fas fa-square-parking"></i></div>
+          <div class="dp-row-content">
+            <div class="dp-row-label">Parking</div>
+            <div class="dp-row-value">${stop.parking}</div>
+          </div>
+        </div>
+        <div class="dp-row">
+          <div class="dp-ico"><i class="fas fa-baby-carriage"></i></div>
+          <div class="dp-row-content">
+            <div class="dp-row-label">Stroller Friendliness</div>
+            <div class="dp-row-value">${dpStars(stop.stroller)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="dp-notes">
+        <div class="dp-notes-label">Notes</div>
+        ${stop.notes}
+      </div>
+    </div>`;
+
+  // Async: try to load a hero photo from Wikipedia
+  fetchWikiThumb(stop.name, 900).then(src => {
+    const wrap = document.getElementById('dp-hero-wrap');
+    if (!wrap) return;
+    if (src) {
+      wrap.outerHTML = `<img class="dp-hero" src="${src}" alt="${stop.name}" />`;
+    }
+  });
 }
 
 // =============================================================
-// BUILD UI
+// BUILD SIDEBAR
 // =============================================================
-const allMarkers  = {};   // key → marker
-const dayGroups   = {};   // dayNum → [key, ...]
-let   activeItems = {};   // track sidebar active items
-
 function build() {
-  const sidebar   = document.getElementById('sidebar');
-  const filterBar = document.getElementById('filter-bar');
+  const sbDays = document.getElementById('sb-days');
 
-  // --- Day filter buttons ---
-  const allBtn = document.createElement('button');
-  allBtn.className = 'day-btn active';
-  allBtn.dataset.day = 'all';
-  allBtn.textContent = 'All';
-  allBtn.style.setProperty('--dc', '#444');
-  filterBar.insertBefore(allBtn, filterBar.querySelector('.legend-dots'));
-
-  tripDays.forEach(day => {
-    const btn = document.createElement('button');
-    btn.className = 'day-btn active';
-    btn.dataset.day = day.day_number;
-    btn.textContent = `D${day.day_number}`;
-    btn.title = `Day ${day.day_number}: ${day.label}`;
-    btn.style.setProperty('--dc', day.color);
-    filterBar.insertBefore(btn, filterBar.querySelector('.legend-dots'));
-  });
-
-  // --- Sidebar + markers ---
   tripDays.forEach(day => {
     dayGroups[day.day_number] = [];
 
     const sec = document.createElement('div');
-    sec.className = 'day-section';
+    sec.className = 'day-section collapsed';
     sec.dataset.day = day.day_number;
+
+    const dayLabel = day.day_number === 0  ? '✈️ Fly In'
+                   : day.day_number === 15 ? '✈️ Fly Out'
+                   : `Day ${day.day_number}`;
 
     sec.innerHTML = `
       <div class="day-header">
         <div class="day-dot" style="background:${day.color}"></div>
         <div class="day-header-text">
-          <div class="day-lbl">Day ${day.day_number}: ${day.label}</div>
+          <div class="day-lbl">${dayLabel}: ${day.label}</div>
           <div class="day-date">${day.date}</div>
         </div>
         <i class="fas fa-chevron-down chev"></i>
       </div>
       <div class="stop-list"></div>`;
-    sidebar.appendChild(sec);
+    sbDays.appendChild(sec);
 
-    sec.querySelector('.day-header').addEventListener('click', () => sec.classList.toggle('collapsed'));
-
+    const header   = sec.querySelector('.day-header');
     const stopList = sec.querySelector('.stop-list');
+    let   loaded   = false;
 
+    header.addEventListener('click', () => {
+      sec.classList.toggle('collapsed');
+      // Lazy-load thumbnails when first expanded
+      if (!sec.classList.contains('collapsed') && !loaded) {
+        loaded = true;
+        sec.querySelectorAll('.stop-thumb[data-name]').forEach(img => {
+          fetchWikiThumb(img.dataset.name, 300).then(src => {
+            if (src) { img.src = src; img.style.background = 'none'; }
+          });
+        });
+      }
+    });
+
+    // Build stop cards
     day.stops.forEach((stop, idx) => {
-      const key = `${day.day_number}-${idx}`;
+      const key   = `${day.day_number}-${idx}`;
+      const ico   = TYPE_ICONS[stop.type]  || 'fa-location-dot';
+      const emoji = TYPE_EMOJIS[stop.type] || '📍';
+      const optTag = stop.optional ? `<span class="opt-tag">opt</span>` : '';
 
-      // Marker
+      // Leaflet marker (added regardless of view mode)
       const m = L.marker([stop.lat, stop.lng], { icon: makeIcon(day.color, stop.optional) });
-      m.bindPopup(buildPopup(stop, day), { maxWidth: 300 });
       m.addTo(map);
       allMarkers[key] = m;
       dayGroups[day.day_number].push(key);
 
-      // Sidebar item
-      const item = document.createElement('div');
-      item.className = 'stop-item';
-      item.dataset.key = key;
-      const ico = TYPE_ICONS[stop.type] || 'fa-location-dot';
-      const optTag = stop.optional ? `<span class="opt-tag">opt</span>` : '';
-      const parking_short = stop.parking.length > 48 ? stop.parking.slice(0, 48) + '…' : stop.parking;
-      item.innerHTML = `
-        <span class="stop-type-ico"><i class="fas ${ico}" style="color:${day.color}"></i></span>
-        <div class="stop-name">${stop.name}${optTag}</div>
-        <div class="stop-sub">${parking_short}</div>`;
+      // Marker click in map mode → switch to detail
+      m.on('click', () => {
+        if (mapMode) {
+          setMapMode(false);
+          showDetail(stop, day, key);
+        }
+      });
 
-      item.addEventListener('click', () => {
-        // Clear previous active
-        document.querySelectorAll('.stop-item.active').forEach(el => el.classList.remove('active'));
-        item.classList.add('active');
-        map.flyTo([stop.lat, stop.lng], 15, { duration: 0.9 });
-        setTimeout(() => m.openPopup(), 950);
+      const card = document.createElement('div');
+      card.className = 'stop-card';
+      card.dataset.key = key;
+      card.innerHTML = `
+        <img class="stop-thumb" data-name="${stop.name}" src="" alt="${stop.name}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="stop-thumb-placeholder" style="display:none">${emoji}</div>
+        <div class="stop-card-text">
+          <div class="stop-card-name">${stop.name}${optTag}</div>
+          <div class="stop-card-sub"><i class="fas ${ico}" style="color:${day.color};margin-right:4px"></i>${TYPE_LABELS[stop.type] || stop.type}</div>
+        </div>`;
+
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.stop-card.active').forEach(el => el.classList.remove('active'));
+        card.classList.add('active');
+        // Always switch to detail view when a card is clicked
+        if (mapMode) setMapMode(false);
+        showDetail(stop, day, key);
         // Close mobile sidebar
         document.getElementById('sidebar').classList.remove('open');
-        document.querySelector('#fab i').className = 'fas fa-list';
+        document.getElementById('fab').querySelector('i').className = 'fas fa-list';
       });
 
-      stopList.appendChild(item);
+      stopList.appendChild(card);
     });
   });
 
   // =============================================================
-  // DAY FILTER LOGIC
+  // MAP TOGGLE BUTTON
   // =============================================================
-  document.querySelectorAll('.day-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const day = btn.dataset.day;
-
-      if (day === 'all') {
-        // Activate everything
-        document.querySelectorAll('.day-btn').forEach(b => b.classList.add('active'));
-        Object.values(allMarkers).forEach(m => { if (!map.hasLayer(m)) map.addLayer(m); });
-        document.querySelectorAll('.day-section').forEach(s => s.style.display = '');
-        return;
-      }
-
-      btn.classList.toggle('active');
-      const num  = +day;
-      const show = btn.classList.contains('active');
-      (dayGroups[num] || []).forEach(key => {
-        const m = allMarkers[key];
-        show ? (!map.hasLayer(m) && map.addLayer(m)) : (map.hasLayer(m) && map.removeLayer(m));
-      });
-      const sec = document.querySelector(`.day-section[data-day="${num}"]`);
-      if (sec) sec.style.display = show ? '' : 'none';
-
-      // Sync "All" button
-      const allActive = [...document.querySelectorAll('.day-btn:not([data-day="all"])')].every(b => b.classList.contains('active'));
-      document.querySelector('[data-day="all"]').classList.toggle('active', allActive);
-    });
-  });
+  document.getElementById('map-toggle').addEventListener('click', () => setMapMode(!mapMode));
 
   // =============================================================
-  // MOBILE FAB
+  // MOBILE FAB + CLOSE
   // =============================================================
-  const fab     = document.getElementById('fab');
-  const sideEl  = document.getElementById('sidebar');
+  const fab    = document.getElementById('fab');
+  const sideEl = document.getElementById('sidebar');
+
   fab.addEventListener('click', () => {
     const open = sideEl.classList.toggle('open');
     fab.querySelector('i').className = open ? 'fas fa-times' : 'fas fa-list';
   });
-  map.on('click', () => {
+  document.getElementById('fab-close').addEventListener('click', () => {
     sideEl.classList.remove('open');
     fab.querySelector('i').className = 'fas fa-list';
   });
 
-  // =============================================================
-  // FIT MAP
-  // =============================================================
+  // Fit map bounds (map is hidden by default but bounds are set for when it opens)
   const bounds = tripDays.flatMap(d => d.stops.map(s => [s.lat, s.lng]));
   if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
 }
