@@ -945,7 +945,12 @@ function build() {
         loaded = true;
         sec.querySelectorAll('.stop-thumb[data-name]').forEach(img => {
           fetchWikiThumb(img.dataset.name, 300).then(src => {
-            if (src) { img.src = src; img.style.background = 'none'; }
+            if (src) {
+              img.style.display = '';
+              img.src = src;
+              img.style.background = 'none';
+              img.nextElementSibling.style.display = 'none';
+            }
           });
         });
       }
